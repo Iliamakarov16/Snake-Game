@@ -9,8 +9,12 @@ Color green = {173, 204, 96, 255};
 //grid system
 const int cellSize = 32; 
 const int cellCount = 25;
+int offset = 75;
+
+
 
 bool isGameActive = false;
+
 bool shouldAddSegment = false;
 bool elementInDeque(Vector2 element, std::deque<Vector2> deck){
     for(auto segment : deck){
@@ -86,7 +90,7 @@ public:
     void draw(){
         for (size_t i = 0; i < body.size(); ++i){
             Vector2 segment = body[i];
-            Vector2 pos = {segment.x * cellSize, segment.y * cellSize};
+            Vector2 pos = {offset + (segment.x * cellSize), offset + (segment.y * cellSize)};
             int index = BODY_H;
             if (i == 0){
                 index = headIndex();
@@ -151,9 +155,7 @@ public:
 
     Food(std::deque<Vector2> snakeBody){
         //texture load
-        Image image = LoadImage("graphics/apple.png");
-        texture = LoadTextureFromImage(image);
-        UnloadImage(image);
+        texture = LoadTexture("graphics/apple.png");
 
         position = generateRandPos(snakeBody);
     }
@@ -174,7 +176,7 @@ public:
     }
     
     void draw(){
-        DrawTexture(texture, position.x * cellSize, position.y * cellSize, WHITE);
+        DrawTexture(texture, offset + (position.x * cellSize), offset + (position.y * cellSize), WHITE);
     }
 
     ~Food(){
@@ -187,6 +189,23 @@ public:
     Snake snake = Snake();
     Food food = Food(snake.body);
 
+    int score = 0;
+
+    Sound eatSound;
+    Sound wallSound;
+
+
+    Game(){
+        InitAudioDevice();
+        eatSound = LoadSound("sounds/eat.mp3");
+        wallSound = LoadSound("sounds/wall.mp3");
+        
+    }
+    ~Game(){
+        UnloadSound(eatSound);
+        UnloadSound(wallSound);
+        CloseAudioDevice();
+    }
     //returns true if time passed >= interval parameter. (used to update snake every interval instead of every frame)
     double lastUpdateTime = 0;
     bool eventTriggered(double interval){
@@ -217,12 +236,17 @@ public:
             isGameActive = false;
         }
     }
+
     void checkCollisionWithFood(){
         if (Vector2Equals(snake.body.front(), food.position)){
             food.position = food.generateRandPos(snake.body);
             shouldAddSegment = true;
+            score++;
+
+            PlaySound(eatSound);
         }
     }
+    
     void checkCollisionWithEdges(){
         if (snake.body.front().y < 0 || snake.body.front().y >= cellCount){
             gameOver();
@@ -242,14 +266,19 @@ public:
 
     void gameOver(){
         isGameActive = false;
+
         snake.reset();
         food.position = food.generateRandPos(snake.body);
+        score = 0;
+
+        PlaySound(wallSound);
+        
     }
 
 };
 int main(){ 
     //Window setup
-    InitWindow(cellSize * cellCount, cellSize * cellCount, "Snake Game");
+    InitWindow(2 * offset + (cellSize * cellCount), 2 * offset + (cellSize * cellCount), "Snake Game");
     SetTargetFPS(60);
 
     const char *app_dir = GetApplicationDirectory();
@@ -258,11 +287,18 @@ int main(){
     Game game;
 
     while(!WindowShouldClose()){
+        Texture2D appleTexture = LoadTexture("graphics/apple.png");
         BeginDrawing();
         //Update
         game.update();
         //Draw
         ClearBackground(green);
+        //frame
+        DrawRectangleLinesEx(Rectangle{(float)offset - 5, (float)offset - 5, (float)cellSize * cellCount + 10, (float)cellSize * cellCount + 10}, 5.0, BLACK);
+        //title
+        DrawText("Snake Game", offset - 5, 20, 40, BLACK);
+        DrawText(TextFormat("%i", game.score), (cellSize * cellCount) + offset - 50, 20, 40, BLACK);
+        DrawTexture(appleTexture, (cellSize * cellCount) + offset - 20, 20, WHITE);
         game.draw();
 
         EndDrawing();
