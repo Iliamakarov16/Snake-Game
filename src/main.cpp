@@ -1,7 +1,7 @@
 #include <iostream>
 #include <deque>
-#include "include/raylib/raylib.h"
-#include "include/raylib/raymath.h"
+#include "include/raylib.h"
+#include "include/raymath.h"
 
 //custom colors
 Color green = {173, 204, 96, 255};
